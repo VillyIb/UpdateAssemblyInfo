@@ -20,11 +20,24 @@ namespace UpdateAssemblyInfo.Business
         /// </summary>
         public String AssemblyFileVersion { get; set; }
 
+        public bool UpdateAssemblyFileVersion { get; set; }
+
+        public bool IncrementAssemblyFileVersion { get; set; }
+
+
+        public String AssemblyProductVersion { get; set; }
+
+        public bool UpdateAssemblyProductVersion { get; set; }
+
+
         public String AssemblyProduct { get; set; }
 
         public String AssemblyTrademark { get; set; }
 
+
         public String AssemblyVersion { get; set; }
+
+        public bool UpdateAssemblyVersion { get; set; }
 
         public String NeutralResourcesLanguageAttribute { get; set; }
 
@@ -104,12 +117,13 @@ namespace UpdateAssemblyInfo.Business
             return false;
         }
 
+        public int FilesUpdate { get; set; }
 
         public void Execute()
         {
             FileApi = new Filehandling
                 {
-                    SolutionRoot = new DirectoryInfo(@"C:\Development\Backend")
+                    SolutionRoot = new DirectoryInfo(@"C:\DevBackend\00_Backend_Master\")
                 };
             FileApi.LocateFiles();
 
@@ -120,12 +134,54 @@ namespace UpdateAssemblyInfo.Business
                 List<String> t1;
                 PayloadApi.Payload = Filehandling.PayloadRead(out t1, file) > 0 ? t1 : new List<string>(0);
 
-                AssemblyFileVersionProcess();
                 if (!(BypassSpecial()))
                 {
                     GenericFieldProcess("AssemblyCompany", AssemblyCompany);
                     GenericFieldProcess("AssemblyTrademark", AssemblyTrademark);
-                    GenericFieldProcess("AssemblyVersion", AssemblyVersion);
+
+                    if (UpdateAssemblyVersion)
+                    {
+                        GenericFieldProcess("AssemblyVersion", AssemblyVersion);
+                    }
+
+                    if (UpdateAssemblyProductVersion)
+                    {
+                        const string key = "AssemblyInformationalVersion";
+                        if (PayloadApi.LocateValue(key))
+                        {
+                            GenericFieldProcess(key, AssemblyProductVersion);
+                        }
+                        else
+                        {
+                            PayloadApi.Add(key, AssemblyProductVersion);
+                        }
+                    }
+
+                    if (UpdateAssemblyFileVersion)
+                    {
+                        GenericFieldProcess("AssemblyFileVersion", AssemblyFileVersion);
+                        //AssemblyFileVersionProcess();
+                    }
+
+                    if (IncrementAssemblyFileVersion)
+                    {
+                        const string key = "AssemblyFileVersion";
+                        if (PayloadApi.LocateValue(key))
+                        {
+                            var value = PayloadApi.CurrentAttributeGet();
+
+                            var array = value.Split(new[] { '.' }, StringSplitOptions.None);
+                            int build;
+                            if (int.TryParse(array[3], out build))
+                            {
+                                build++;
+                                value = String.Format("{0}.{1}.{2}.{3}", array[0], array[1], array[2], build);
+                            }
+
+                            PayloadApi.CurrentAttributeSet(value);
+                        }
+                    }
+
                     GenericFieldProcess("AssemblyCopyright", AssemblyCopyright);
                     GenericFieldProcess("AssemblyProduct", AssemblyProduct);
                     GenericFieldProcess("NeutralResourcesLanguageAttribute", NeutralResourcesLanguageAttribute);
@@ -134,6 +190,7 @@ namespace UpdateAssemblyInfo.Business
                 if (PayloadApi.HasPayloadChanged)
                 {
                     Filehandling.PayloadWrite(PayloadApi.Payload, file);
+                    FilesUpdate++;
                 }
             }
 

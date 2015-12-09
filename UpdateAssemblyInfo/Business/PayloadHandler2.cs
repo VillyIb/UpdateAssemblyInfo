@@ -104,6 +104,13 @@ namespace UpdateAssemblyInfo.Business
             var t3 = PayloadInternal.Substring(CurrentFirstAfterValue);
 
             PayloadInternal = PayloadInternal.Substring(0, CurrentValueStart) + value + PayloadInternal.Substring(CurrentFirstAfterValue);
+            HasPayloadChanged = true;
+        }
+
+        public void Add(String key, String value)
+        {
+            Payload.Add(String.Format("[assembly: AssemblyInformationalVersion(\"{0}\")]", value));
+            HasPayloadChanged = true;
         }
 
     }
